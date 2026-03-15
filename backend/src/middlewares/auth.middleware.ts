@@ -5,33 +5,42 @@ import User, { IUser } from "../models/user.model";
 export interface AuthRequest extends Request {
   user?: IUser;
   workspaceId?: string;
-  file?: any; // To support multer file uploads in controllers
+  file?: Express.Multer.File;
 }
 
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  let token;
+export const protect = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  let token: string | undefined;
 
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
       token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback_secret") as { id: string };
 
-      req.user = await User.findById(decoded.id).select("-passwordHash") || undefined;
-      
-      if (!req.user) {
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || "fallback_secret"
+      ) as { id: string };
+
+      const user = await User.findById(decoded.id).select("-passwordHash");
+
+      if (!user) {
         return res.status(401).json({ message: "Not authorized, user not found" });
       }
 
-      // Allow workspace isolation by injecting workspaceId query/param/header if present
-      req.workspaceId = req.headers["x-workspace-id"] as string || req.query.workspaceId as string;
+      req.user = user;
 
-      return next();
+      req.workspaceId =
+        (req.headers["x-workspace-id"] as string) ||
+        (req.query.workspaceId as string);
+
+      next();
     } catch (error) {
       return res.status(401).json({ message: "Not authorized, token failed" });
     }
-  }
-
-  if (!token) {
+  } else {
     return res.status(401).json({ message: "Not authorized, no token" });
   }
 };
