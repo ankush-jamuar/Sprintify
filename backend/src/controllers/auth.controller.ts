@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model";
@@ -11,7 +11,7 @@ const generateToken = (id: string) => {
   });
 };
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password, username } = req.body;
     const userExists = await User.findOne({ email });
@@ -44,7 +44,7 @@ export const registerUser = async (req: Request, res: Response) => {
   }
 };
 
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (req: AuthRequest, res: Response) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -68,17 +68,17 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getMe = async (req: any, res: Response) => {
+export const getMe = async (req: AuthRequest, res: Response) => {
   res.json(req.user);
 };
 
-export const logoutUser = async (_req: Request, res: Response) => {
+export const logoutUser = async (_req: AuthRequest, res: Response) => {
   // For a stateless JWT system, logout is client-side (delete token).
   // If using httpOnly cookies, clear them here.
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-export const refreshToken = async (req: Request, res: Response) => {
+export const refreshToken = async (req: AuthRequest, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
